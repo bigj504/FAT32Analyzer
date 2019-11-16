@@ -8,7 +8,7 @@
  *		   	jmpBoot[0] = 0xEB
  *		   	jmpBoot[1] = ??
  *		   	jmpBoot[2] = 0x90
- *              OR
+ **              OR
  *         	jmpBoot[0] = 0xE9
  *		   	jmpBoot[1] = ??
  *		   	jmpBoot[2] = ??
@@ -52,7 +52,7 @@ import java.nio.file.Files;
 
 public class FAT32Analyzer {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		
 		File file;
 		String fileNamePath;
@@ -66,11 +66,13 @@ public class FAT32Analyzer {
 		fileNamePath = args[0];
 		file = new File(fileNamePath);
 
-		try {
+		//try{															//kept getting errors with the exeception handling
 			byte[] fileContent = FAT32Analyzer.getFileBytes(file);
-		} catch(IOException ioe) {
-			ioe.printStackTrace();
-		}
+	//	} catch ( IOException ioe){
+	//		ioe.printStackTrace();
+	//	}	
+			
+		bpbEntry(fileContent);
 	}
 
 	/**
@@ -80,7 +82,39 @@ public class FAT32Analyzer {
 	 * @param file - the file to be converted to byte array
 	 * @return the byte array of the file's contents
 	 */
-	public static byte[] getFileBytes(File file) {
+	public static byte[] getFileBytes(File file) throws IOException {
+		
 		return Files.readAllBytes(file.toPath());
+
+	}
+
+	/**
+	*Method to see if BPB is Present or missing.
+	* (Task 2)
+	*PLEASE READ TO UNDERSTAND HOW IM GETTING LINE 102, i printed index 0-10 and i saw that the index 0 = -21 signed 2's complement which according to this website is converted to eb in hex, https://www.rapidtables.com/convert/number/hex-to-decimal.html
+	*also I used the corrected version of fat32.dd file.  
+	*@param fileContent - the byte array
+	*@return bpbPresent - true will equal BPB is present otherwise, not present , if !bpbPresent can be difference between task 3 occuring or not 
+	*/
+	public static boolean bpbEntry(byte[] fileContent) {
+		boolean bpbPresent = false; // if BPB present then set to true 
+		int arrayLength = fileContent.length - 1, i = 0; // length and iterator
+		
+		while (i < arrayLength) {
+
+			 byte entry = fileContent[i];
+			 System.out.println(entry); //test, delete
+			if( entry == -21){
+				bpbPresent = true;
+				break;  				// break out while cause we found what we need
+			}
+			i++;
+		}
+
+
+		System.out.println(arrayLength);// test, delete
+		System.out.println(bpbPresent); //test , delete  
+		return bpbPresent;
+
 	}
 }
