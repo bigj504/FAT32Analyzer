@@ -48,6 +48,8 @@
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 
 
@@ -57,7 +59,8 @@ public class FAT32Analyzer {
 	private static int sectorsPerCluster;
 	private static int reservedSectorCount;
 	private static int numFATs;
-
+	private static int sizeOfFAT;
+	private static int rootCluster;
 
 	public static void main(String[] args) throws IOException {
 		
@@ -100,7 +103,7 @@ public class FAT32Analyzer {
 	}
 
 	/**
-	 * Method to see if BPB is Present or missing.
+	 * Method to see if BPB is present and intact or missing/corrupted/modified.
 	 * (Task 2)
 	 *
 	 * @param fileContent - the byte array
@@ -243,7 +246,71 @@ public class FAT32Analyzer {
 		if(endSignatureByteTwo != -86)
 			return false;
 
-		//If we made it here, it passed all the previous tests, so return true
+		//If we made it here, it passed all the previous tests.
+		/*Determine the bytes per sector*/
+		if(bytesPerSectorByteTwo == 2)
+			this.bytesPerSector = 512;
+		else if(bytesPerSectorByteTwo == 4)
+			this.bytesPerSector = 1024;
+		else if(bytesPerSectorByteTwo == 8)
+			this.bytesPerSector = 2048;
+		else if(bytesPerSectorByteTwo == 16)
+			this.bytesPerSector = 4096;
+
+		/*Determine the sectors per cluster*/
+		if(sectorsPerCluster == -128)
+			this.sectorsPerCluster = 128;
+		else
+			this.sectorsPerCluster = sectorsPerCluster;
+
+		/*Determine the number of reserved sectors*/
+		if(rsvdSecCntByteTwo == 0)
+			this.reservedSectorCount = rsvdSecCntByteOne;
+		else {
+			this.reservedSectorCount = (rsvdSecCntByteTwo << 8) + rsvdSecCntByteOne;
+		}
+
+		/*Determine the number of FATs*/
+		this.numFATs = numFATs;
+
+		/*Determine the number of sectors per FAT*/
+		//Create a new byte array to hold the 4 bytes of the sizeOfFAT
+		byte[] temp = new byte[4];
+		//Add the 4 bytes to the array
+		temp[0] = fileContent[36];
+		temp[1] = fileContent[37];
+		temp[2] = fileContent[38];
+		temp[3] = fileContent[39];
+		//Create a ByteBuffer wrapped around the array
+		ByteBuffer bb = ByteBuffer.wrap(temp);
+		//Change the ByteBuffer to little endian
+		bb.order(ByteOrder.LITTLE_ENDIAN);
+		//Convert it to an int and store
+		this.sizeOfFAT = bb.getInt();
+
+		/*Determine location of root cluster*/
+		//If the 3 bytes following the least significant byte are 0
+		if(fileContent[45] == 0 && fileContent[46] == 0 && fileContent[47] == 0)
+			//Then the rootCluster field is just in the first byte
+			this.rootCluster = fileContent[44];
+		//Otherwise create a new byte array to hold the 4 bytes and convert using ByteBuffer
+		else {
+			byte[] arr = new byte[4];
+			//Add the 4 bytes to the array
+			arr[0] = fileContent[44];
+			arr[1] = fileContent[45];
+			arr[2] = fileContent[46];
+			arr[3] = fileContent[47];
+			//Override our existing byte buffer to be wrapped around this array
+			bb = ByteBuffer.wrap(arr);
+			//Just to make sure it's using little endian ordering
+			bb.order(ByteOrder.LITTLE_ENDIAN);
+			//Convert it to an int and store
+			this.rootCluster = bb.getInt();
+		}
+
+
+		//Finally, return true
 		return true;
 	}
 
