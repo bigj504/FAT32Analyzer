@@ -53,6 +53,12 @@ import java.nio.file.Files;
 
 public class FAT32Analyzer {
 
+	private static int bytesPerSector;
+	private static int sectorsPerCluster;
+	private static int reservedSectorCount;
+	private static int numFATs;
+
+
 	public static void main(String[] args) throws IOException {
 		
 		File file;
@@ -75,7 +81,7 @@ public class FAT32Analyzer {
 	//		ioe.printStackTrace();
 	//	}	
 			
-		  bpbPresent = bpbEntry(fileContent) ;
+		  bpbPresent = bpbEntry(fileContent);
 		  if(!bpbPresent)
 		  bpbBackupPresent = bpbBackup(fileContent);
 	}
@@ -94,39 +100,151 @@ public class FAT32Analyzer {
 	}
 
 	/**
-	*Method to see if BPB is Present or missing.
-	* (Task 2)
-	*PLEASE READ TO UNDERSTAND HOW IM GETTING LINE 102, i printed index 0-10 and i saw that the index 0 = -21 signed 2's complement which according to this website is converted to eb in hex, https://www.rapidtables.com/convert/number/hex-to-decimal.html
-	*also I used the corrected version of fat32.dd file.  
-	*@param fileContent - the byte array
-	*@return bpbPresent - true will equal BPB is present otherwise, not present , if !bpbPresent can be difference between task 3 occuring or not 
-	*/
+	 * Method to see if BPB is Present or missing.
+	 * (Task 2)
+	 *
+	 * @param fileContent - the byte array
+	 * @return false if the BPB contains any errors/modifications that will cause corruption, true otherwise 
+	 */
 	public static boolean bpbEntry(byte[] fileContent) {
-		boolean bpbPresent = false; // if BPB present then set to true 
-		int arrayLength = fileContent.length - 1, i = 0; // length and iterator
 		
-		
-		//while (i < arrayLength) {
-
+		byte jmpBootByteOne = fileContent[0];
+		byte jmpBootByteThree = fileContent[2];
+		byte bytesPerSectorByteOne = fileContent[11];
+		byte bytesPerSectorByteTwo = fileContent[12];
+		byte sectorsPerCluster = fileContent[13];
+		byte rsvdSecCntByteOne = fileContent[14];
+		byte rsvdSecCntByteTwo = fileContent[15];
+		byte numFATs = fileContent[16];
+		byte rootEntCntByteOne = fileContent[17];
+		byte rootEntCntByteTwo = fileContent[18];
+		byte totSec16ByteOne = fileContent[19];
+		byte totSec16ByteTwo = fileContent[20];
+		byte media = fileContent[21];
+		byte fatSz16ByteOne = fileContent[22];
+		byte fatSz16ByteTwo = fileContent[23];
+		byte totSec32ByteOne = fileContent[34];
+		byte totSec32ByteTwo = fileContent[35];
+		byte fsVerByteOne = fileContent[42];
+		byte fsVerByteTwo = fileContent[43];
+		byte reserved = fileContent[52];
+		byte drvNum = fileContent[64];
+		byte reservedOne = fileContent[65];
+		byte endSignatureByteOne = fileContent[510];
+		byte endSignatureByteTwo = fileContent[511];
 			
-				byte entry = fileContent[i];
-				int j = i+2;
-				byte entryPlusTwo = fileContent[j];
-			
-			// Oxeb = -21, 0x90 = -112, 0xe9 = -23
-			if( ((entry == -21) && (entryPlusTwo == -112)) || (entry ==-23 )){
-				
-				bpbPresent = true;
-				System.out.println(i);  // test, delete 
-				System.out.println((i+1) %512); // test, delete
-			//	break;  				// break out while cause we found what we need
+		// Oxeb = -21, 0x90 = -112, 0xe9 = -23
+		//If the first byte is 0xeb 
+		if(jmpBootByteOne == -21){
+			//Make sure the third byte is 0x90
+			if(jmpBootByteThree != -112)
+			{
+				//If it's not, BPB is corrupted, so return false
+				return false;
 			}
-		//	i++;
-		//}
-		System.out.println(arrayLength+ " task 2");// test, delete
-		System.out.println(bpbPresent); //test , delete  
-		return bpbPresent;
+		}
+		//Otherwise if the first byte isn't 0xeb or 0xe9
+		else if(jmpBootByteOne != -23) {
+			//BPB is corrupted, so return false
+			return false;
+		}
+		//If bytes per sector isn't one of the allowed values, return false
+		//512, 1024, 2048, 4096
+		//512 = 200, 1024 = 400, 2048 = 800, 4096 = 1000
+		if(bytesPerSectorByteOne != 00)
+		{
+			if(bytesPerSectorByteTwo != 2 && bytesPerSectorByteTwo != 4 && 
+				bytesPerSectorByteTwo != 8 && bytesPerSectorByteTwo != 16) {
+				return false;
+			}
+		}
 
+		//If sectors per cluster isn't one of the allowed values, return false
+		//Allowed values: 1, 2, 4, 8, 16, 32, 64, 128
+		//128 = -128
+		if(sectorsPerCluster != 1 && sectorsPerCluster != 2 && sectorsPerCluster != 4 &&
+			sectorsPerCluster != 8 && sectorsPerCluster != 16 && sectorsPerCluster != 32 &&
+			sectorsPerCluster != 64 && sectorsPerCluster != -128) {
+			return false;
+		}
+
+		//If reserved sector count is 0, return false
+		if(rsvdSecCntByteOne == 0) {
+			if(rsvdSecCntByteTwo == 0) {
+				return false;
+			}
+		}
+
+		//If NumFATs isn't 2 or 1, return false
+		if(numFATs != 2 && numFATs != 1) {
+			return false;
+		}
+
+		//If rootEntCnt isn't 0, return false
+		if(rootEntCntByteOne != 0) {
+			return false;
+		}
+		if(rootEntCntByteTwo != 0) {
+			return false;
+		}
+
+		//If totSec16 isn't 0, return false
+		if(totSec16ByteOne != 0) {
+			return false;
+		}
+		if(totSec32ByteTwo != 0) {
+			return false;
+		}
+
+		//If media isn't one of the allowed values, return false
+		//Allowed values: 0xF0, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
+		//F0 = -16, F8 = -8, F9 = -7, FA = -6, FB = -5, FC = -4, FD = -3, FE = -2, FF = -1
+		if(media != -16 && media != -8 && media != -7 && media != -6 && media != -5 &&
+			media != -4 && media != -3 && media != -2 && media != -1) {
+			return false;
+		}
+
+		//If fatSz16 isn't 0, return false
+		if(fatSz16ByteOne != 0)
+			return false;
+		if(fatSz16ByteTwo != 0)
+			return false;
+
+		//If totSec32 is 0, return false
+		if(totSec32ByteOne == 0)
+		{
+			if(totSec32ByteTwo == 0) {
+				return false;
+			}
+		}
+
+		//If fsVer isn't 0, return false
+		if(fsVerByteOne != 0)
+			return false;
+		if(fsVerByteTwo != 0)
+			return false;
+
+		//If reserved isn't 0, return false
+		if(reserved != 0)
+			return false;
+
+		//If drvNum isn't 0x80 or 0, return false
+		if(drvNum != -128 && drvNum != 0)
+			return false;
+
+		//If reservedOne isn't 0, return false
+		if(reservedOne != 0)
+			return false;
+
+		//If end signature isn't 0x55 0xAA, return false
+		//0x55 = 85, 0xAA = -86
+		if(endSignatureByteOne != 85)
+			return false;
+		if(endSignatureByteTwo != -86)
+			return false;
+
+		//If we made it here, it passed all the previous tests, so return true
+		return true;
 	}
 
 
