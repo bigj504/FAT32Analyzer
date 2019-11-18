@@ -50,12 +50,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+
 public class FAT32Analyzer {
 
 	public static void main(String[] args) throws IOException {
 		
 		File file;
 		String fileNamePath;
+		boolean bpbPresent;
+		boolean bpbBackupPresent;
 
 		//Ensure proper usage
 		if(args.length != 1) {
@@ -72,7 +75,9 @@ public class FAT32Analyzer {
 	//		ioe.printStackTrace();
 	//	}	
 			
-		bpbEntry(fileContent);
+		  bpbPresent = bpbEntry(fileContent) ;
+		  if(!bpbPresent)
+		  bpbBackupPresent = bpbBackup(fileContent);
 	}
 
 	/**
@@ -100,21 +105,70 @@ public class FAT32Analyzer {
 		boolean bpbPresent = false; // if BPB present then set to true 
 		int arrayLength = fileContent.length - 1, i = 0; // length and iterator
 		
-		while (i < arrayLength) {
+		
+		//while (i < arrayLength) {
 
-			 byte entry = fileContent[i];
-			 System.out.println(entry); //test, delete
-			if( entry == -21){
+			
+				byte entry = fileContent[i];
+				int j = i+2;
+				byte entryPlusTwo = fileContent[j];
+			
+			// Oxeb = -21, 0x90 = -112, 0xe9 = -23
+			if( ((entry == -21) && (entryPlusTwo == -112)) || (entry ==-23 )){
+				
 				bpbPresent = true;
-				break;  				// break out while cause we found what we need
+				System.out.println(i);  // test, delete 
+				System.out.println((i+1) %512); // test, delete
+			//	break;  				// break out while cause we found what we need
 			}
-			i++;
-		}
-
-
-		System.out.println(arrayLength);// test, delete
+		//	i++;
+		//}
+		System.out.println(arrayLength+ " task 2");// test, delete
 		System.out.println(bpbPresent); //test , delete  
 		return bpbPresent;
 
 	}
+
+
+	/**
+	*Located BPB backup
+	* (Task 3)
+	*@param fileContent - the byte array
+	*@return bpbBackupPresent - true will equal BPB backup is present 
+	*
+	*/
+	public static boolean bpbBackup(byte[] fileContent){
+		boolean bpbBackupPresent = false;
+		int arrayLength = fileContent.length-1, i=0;
+
+		while( i < arrayLength){
+
+				byte entry = fileContent[i];
+				int j = i+2;
+				int k = (i+1 % 512);
+				byte entryPlusTwo = fileContent[j];
+			
+			// Oxeb = -21, 0x90 = -112, 0xe9 = -23
+			if( ((entry == -21) && (entryPlusTwo == -112)) || ((entry ==-23 ) && (k == 0)) ){
+				
+				bpbBackupPresent = true;
+				System.out.println(i);  // test, delete 
+				System.out.println((i+1) %512); // test, delete
+				break;  				// break out while cause we found what we need
+			}
+			i++;
+		}
+		System.out.println(arrayLength + " task 3");// test, delete
+		System.out.println(bpbBackupPresent); //test , delete  
+		return bpbBackupPresent;
+
+	}
+
+
+
 }
+
+	
+
+
+
