@@ -109,31 +109,122 @@ public class FAT32Analyzer {
 	 * @return false if the BPB contains any errors/modifications that will cause corruption, true otherwise 
 	 */
 	public static boolean bpbEntry() {
-		
-		byte jmpBootByteOne = fileContent[0];
-		byte jmpBootByteThree = fileContent[2];
-		byte bytesPerSectorByteOne = fileContent[11];
-		byte bytesPerSectorByteTwo = fileContent[12];
-		byte sectorsPerCluster = fileContent[13];
-		byte rsvdSecCntByteOne = fileContent[14];
-		byte rsvdSecCntByteTwo = fileContent[15];
-		byte numFATs = fileContent[16];
-		byte rootEntCntByteOne = fileContent[17];
-		byte rootEntCntByteTwo = fileContent[18];
-		byte totSec16ByteOne = fileContent[19];
-		byte totSec16ByteTwo = fileContent[20];
-		byte media = fileContent[21];
-		byte fatSz16ByteOne = fileContent[22];
-		byte fatSz16ByteTwo = fileContent[23];
-		byte totSec32ByteOne = fileContent[34];
-		byte totSec32ByteTwo = fileContent[35];
-		byte fsVerByteOne = fileContent[42];
-		byte fsVerByteTwo = fileContent[43];
-		byte reserved = fileContent[52];
-		byte drvNum = fileContent[64];
-		byte reservedOne = fileContent[65];
-		byte endSignatureByteOne = fileContent[510];
-		byte endSignatureByteTwo = fileContent[511];
+		return FAT32Analyzer.parseBPB(0);
+	}
+
+
+	/**
+	 * Method to locate backup BPB, ensure backup isn't corrupted/modified,
+	 * and repair the sector 0 BPB with the backup.
+	 * (Task 3 & 4)
+	 *
+	 * @return false if the backup is missing, corrupted, or modified, true otherwise
+	 */
+	public static boolean bpbBackup(){
+		/*Locate the backup*/
+		//Whether we were successful locating the backup or not, initialized to false
+		boolean foundBackup = false;
+		//int to store the offset of the backup BPB
+		int backupOffset;
+		//For every byte in the file,
+		for(int i = 0; i < fileContent.length - 1; i++) {
+			//Store that byte
+			byte thisByte = fileContent[i];
+			//If the byte is 0xEB (-21)
+			if(thisByte == -21) {
+				//Check to see if the byte at index + 2 is 0x90 (-112) and check if
+				//the index we found this byte at is the start of a sector
+				//Also checks for the end signature word (0x55 at offset 510 and 
+				//0xAA at offset 511)
+				if(fileContent[i + 2] == -112 && fileContent[i + 510] == 85 && fileContent[i + 511] == -86 && i % 512 == 0) {
+					//If so, we found the backup, so store the offset
+					backupOffset = i;
+					//And set foundBackup to true to break us out of the while loop
+					foundBackup = true;
+					//Break out of the for loop
+					break;
+				}
+			}
+			//Otherwise if the byte is 0xE9 (-23)
+			else if(thisByte == -23) {
+				//Check to see if the index we found this byte at is the start of a sector
+				//and contains the end signature word
+				if(fileContent[i + 510] == 85 && fileContent[i + 511] == -86 && i % 512 == 0) {
+					//If so, we found the backup, so store the offset and break
+					backupOffset = i;
+					foundBackup = true;
+					break;
+				}
+			}
+		}
+
+		//If we iterated through the file and never found the backup, return false
+		if(foundBackup = false)
+			return false;
+
+		//Parse through the backup by passing in the backupOffset to parseBPB method
+		boolean backupIntact = FAT32Analyzer.parseBPB(backupOffset);
+
+		//If the backup is not intact (parseBPB returned false), return false
+		if(backupIntact = false)
+			return false;
+
+		/*Repair the BPB using this backup*/
+		//Create a new byte array of size 512 (number of bytes in BPB)
+		byte[] backup = new byte[512];
+		//Store the backup BPB from fileContent in the backup array
+		for(int i = 0; i < 512; i++) {
+			//j is the index for fileContent
+			int j = backupOffset;
+			backup[i] = fileContent[j];
+			j++;
+		}
+		//Index for fileContent
+		int index = 0;
+		//For every byte in the backup
+		for(byte backupByte : backup) {
+			//Write that byte to its respective location in the BPB of the fileContent
+			fileContent[index] = backupByte;
+			//Increment fileContent index
+			index++;
+		}
+
+		//Finally, return true to indicate success
+		return true;
+	}
+
+	/**
+	 * Helper method to parse BPB structure, both sector 0 and backup. Also does
+	 * the storing of important information parsed from BPB.
+	 *
+	 * @param startingOffset the offset the BPB block starts at
+	 * @return false if the BPB is modified/corrupted/missing, true otherwise
+	 */
+	public static boolean parseBPB(int startingOffset) {
+		byte jmpBootByteOne = fileContent[startingOffset];
+		byte jmpBootByteThree = fileContent[startingOffset + 2];
+		byte bytesPerSectorByteOne = fileContent[startingOffset + 11];
+		byte bytesPerSectorByteTwo = fileContent[startingOffset + 12];
+		byte sectorsPerCluster = fileContent[startingOffset + 13];
+		byte rsvdSecCntByteOne = fileContent[startingOffset + 14];
+		byte rsvdSecCntByteTwo = fileContent[startingOffset + 15];
+		byte numFATs = fileContent[startingOffset + 16];
+		byte rootEntCntByteOne = fileContent[startingOffset + 17];
+		byte rootEntCntByteTwo = fileContent[startingOffset + 18];
+		byte totSec16ByteOne = fileContent[startingOffset + 19];
+		byte totSec16ByteTwo = fileContent[startingOffset + 20];
+		byte media = fileContent[startingOffset + 21];
+		byte fatSz16ByteOne = fileContent[startingOffset + 22];
+		byte fatSz16ByteTwo = fileContent[startingOffset + 23];
+		byte totSec32ByteOne = fileContent[startingOffset + 34];
+		byte totSec32ByteTwo = fileContent[startingOffset + 35];
+		byte fsVerByteOne = fileContent[startingOffset + 42];
+		byte fsVerByteTwo = fileContent[startingOffset + 43];
+		byte reserved = fileContent[startingOffset + 52];
+		byte drvNum = fileContent[startingOffset + 64];
+		byte reservedOne = fileContent[startingOffset + 65];
+		byte endSignatureByteOne = fileContent[startingOffset + 510];
+		byte endSignatureByteTwo = fileContent[startingOffset + 511];
 			
 		// Oxeb = -21, 0x90 = -112, 0xe9 = -23
 		//If the first byte is 0xeb 
@@ -308,44 +399,8 @@ public class FAT32Analyzer {
 			this.rootCluster = bb.getInt();
 		}
 
-
 		//Finally, return true
 		return true;
-	}
-
-
-	/**
-	*Located BPB backup
-	* (Task 3)
-	*@param fileContent - the byte array
-	*@return bpbBackupPresent - true will equal BPB backup is present 
-	*
-	*/
-	public static boolean bpbBackup(){
-		boolean bpbBackupPresent = false;
-		int arrayLength = fileContent.length-1, i=0;
-
-		while( i < arrayLength){
-
-				byte entry = fileContent[i];
-				int j = i+2;
-				int k = (i+1 % 512);
-				byte entryPlusTwo = fileContent[j];
-			
-			// Oxeb = -21, 0x90 = -112, 0xe9 = -23
-			if( ((entry == -21) && (entryPlusTwo == -112)) || ((entry ==-23 ) && (k == 0)) ){
-				
-				bpbBackupPresent = true;
-				System.out.println(i);  // test, delete 
-				System.out.println((i+1) %512); // test, delete
-				break;  				// break out while cause we found what we need
-			}
-			i++;
-		}
-		System.out.println(arrayLength + " task 3");// test, delete
-		System.out.println(bpbBackupPresent); //test , delete  
-		return bpbBackupPresent;
-
 	}
 
 	/**
