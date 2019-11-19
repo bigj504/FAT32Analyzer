@@ -61,7 +61,7 @@ public class FAT32Analyzer {
 	private static int numFATs;
 	private static int sizeOfFAT;
 	private static int rootCluster;
-	private static byte[] fileContent
+	private static byte[] fileContent;
 
 	public static void main(String[] args) throws IOException {
 		
@@ -81,9 +81,9 @@ public class FAT32Analyzer {
 
 		try{															
 			fileContent = FAT32Analyzer.getFileBytes(file);
-			bpbPresent = bpbEntry(fileContent);
+			bpbPresent = bpbEntry();
 		  	if(!bpbPresent)
-		  	bpbBackupPresent = bpbBackup(fileContent);
+		  		bpbBackupPresent = bpbBackup();
 		} catch ( IOException ioe){
 			ioe.printStackTrace();
 		}
@@ -125,7 +125,7 @@ public class FAT32Analyzer {
 		//Whether we were successful locating the backup or not, initialized to false
 		boolean foundBackup = false;
 		//int to store the offset of the backup BPB
-		int backupOffset;
+		int backupOffset = 0;
 		//For every byte in the file,
 		for(int i = 0; i < fileContent.length - 1; i++) {
 			//Store that byte
@@ -207,7 +207,7 @@ public class FAT32Analyzer {
 		byte jmpBootByteThree = fileContent[startingOffset + 2];
 		byte bytesPerSectorByteOne = fileContent[startingOffset + 11];
 		byte bytesPerSectorByteTwo = fileContent[startingOffset + 12];
-		byte sectorsPerCluster = fileContent[startingOffset + 13];
+		byte secPerClus = fileContent[startingOffset + 13];
 		byte rsvdSecCntByteOne = fileContent[startingOffset + 14];
 		byte rsvdSecCntByteTwo = fileContent[startingOffset + 15];
 		byte numFATs = fileContent[startingOffset + 16];
@@ -257,9 +257,9 @@ public class FAT32Analyzer {
 		//If sectors per cluster isn't one of the allowed values, return false
 		//Allowed values: 1, 2, 4, 8, 16, 32, 64, 128
 		//128 = -128
-		if(sectorsPerCluster != 1 && sectorsPerCluster != 2 && sectorsPerCluster != 4 &&
-			sectorsPerCluster != 8 && sectorsPerCluster != 16 && sectorsPerCluster != 32 &&
-			sectorsPerCluster != 64 && sectorsPerCluster != -128) {
+		if(secPerClus != 1 && secPerClus != 2 && secPerClus != 4 &&
+			secPerClus != 8 && secPerClus != 16 && secPerClus != 32 &&
+			secPerClus != 64 && secPerClus != -128) {
 			return false;
 		}
 
@@ -341,29 +341,29 @@ public class FAT32Analyzer {
 		//If we made it here, it passed all the previous tests.
 		/*Determine the bytes per sector*/
 		if(bytesPerSectorByteTwo == 2)
-			this.bytesPerSector = 512;
+			bytesPerSector = 512;
 		else if(bytesPerSectorByteTwo == 4)
-			this.bytesPerSector = 1024;
+			bytesPerSector = 1024;
 		else if(bytesPerSectorByteTwo == 8)
-			this.bytesPerSector = 2048;
+			bytesPerSector = 2048;
 		else if(bytesPerSectorByteTwo == 16)
-			this.bytesPerSector = 4096;
+			bytesPerSector = 4096;
 
 		/*Determine the sectors per cluster*/
-		if(sectorsPerCluster == -128)
-			this.sectorsPerCluster = 128;
+		if(secPerClus == -128)
+			sectorsPerCluster = 128;
 		else
-			this.sectorsPerCluster = sectorsPerCluster;
+			sectorsPerCluster = secPerClus;
 
 		/*Determine the number of reserved sectors*/
 		if(rsvdSecCntByteTwo == 0)
-			this.reservedSectorCount = rsvdSecCntByteOne;
+			reservedSectorCount = rsvdSecCntByteOne;
 		else {
-			this.reservedSectorCount = (rsvdSecCntByteTwo << 8) + rsvdSecCntByteOne;
+			reservedSectorCount = (rsvdSecCntByteTwo << 8) + rsvdSecCntByteOne;
 		}
 
 		/*Determine the number of FATs*/
-		this.numFATs = numFATs;
+		numFATs = numFATs;
 
 		/*Determine the number of sectors per FAT*/
 		//Create a new byte array to hold the 4 bytes of the sizeOfFAT
@@ -378,13 +378,13 @@ public class FAT32Analyzer {
 		//Change the ByteBuffer to little endian
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		//Convert it to an int and store
-		this.sizeOfFAT = bb.getInt();
+		sizeOfFAT = bb.getInt();
 
 		/*Determine location of root cluster*/
 		//If the 3 bytes following the least significant byte are 0
 		if(fileContent[45] == 0 && fileContent[46] == 0 && fileContent[47] == 0)
 			//Then the rootCluster field is just in the first byte
-			this.rootCluster = fileContent[44];
+			rootCluster = fileContent[44];
 		//Otherwise create a new byte array to hold the 4 bytes and convert using ByteBuffer
 		else {
 			byte[] arr = new byte[4];
@@ -398,7 +398,7 @@ public class FAT32Analyzer {
 			//Just to make sure it's using little endian ordering
 			bb.order(ByteOrder.LITTLE_ENDIAN);
 			//Convert it to an int and store
-			this.rootCluster = bb.getInt();
+			rootCluster = bb.getInt();
 		}
 
 		//Finally, return true
