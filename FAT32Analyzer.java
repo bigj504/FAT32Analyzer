@@ -42,7 +42,7 @@
  *
  * @author Hannah Juraszek
  * @author Jordan Gillespie
- * @version 14 November 2019
+ * @version 19 November 2019
  *
  */
 
@@ -61,6 +61,7 @@ public class FAT32Analyzer {
 	private static int numFATs;
 	private static int sizeOfFAT;
 	private static int rootCluster;
+	private static byte[] fileContent
 
 	public static void main(String[] args) throws IOException {
 		
@@ -78,15 +79,14 @@ public class FAT32Analyzer {
 		fileNamePath = args[0];
 		file = new File(fileNamePath);
 
-		//try{															//kept getting errors with the exeception handling
-			byte[] fileContent = FAT32Analyzer.getFileBytes(file);
-	//	} catch ( IOException ioe){
-	//		ioe.printStackTrace();
-	//	}	
-			
-		  bpbPresent = bpbEntry(fileContent);
-		  if(!bpbPresent)
-		  bpbBackupPresent = bpbBackup(fileContent);
+		try{															
+			fileContent = FAT32Analyzer.getFileBytes(file);
+			bpbPresent = bpbEntry(fileContent);
+		  	if(!bpbPresent)
+		  	bpbBackupPresent = bpbBackup(fileContent);
+		} catch ( IOException ioe){
+			ioe.printStackTrace();
+		}
 	}
 
 	/**
@@ -106,10 +106,9 @@ public class FAT32Analyzer {
 	 * Method to see if BPB is present and intact or missing/corrupted/modified.
 	 * (Task 2)
 	 *
-	 * @param fileContent - the byte array
 	 * @return false if the BPB contains any errors/modifications that will cause corruption, true otherwise 
 	 */
-	public static boolean bpbEntry(byte[] fileContent) {
+	public static boolean bpbEntry() {
 		
 		byte jmpBootByteOne = fileContent[0];
 		byte jmpBootByteThree = fileContent[2];
@@ -322,7 +321,7 @@ public class FAT32Analyzer {
 	*@return bpbBackupPresent - true will equal BPB backup is present 
 	*
 	*/
-	public static boolean bpbBackup(byte[] fileContent){
+	public static boolean bpbBackup(){
 		boolean bpbBackupPresent = false;
 		int arrayLength = fileContent.length-1, i=0;
 
@@ -349,8 +348,68 @@ public class FAT32Analyzer {
 
 	}
 
+	/**
+	 * Method to locate and analyze the root directory, searching for and repairing
+	 * illegal characters.
+	 * (Task 6, 7, 8, & 9)
+	 *
+	 * Illegal characters in directory entry file name:
+ 	 *		 a) 0x00 in first byte
+ 	 *		 b) 0xE5 in first byte
+ 	 *       c) 0x20 in first byte
+ 	 *		 d) any characters less than 0x20 (except 0x05)
+ 	 *		 e) 0x22, 0x2A, 0x2B, 0x2C, 0x2E, 0x2F, 0x3A, 0x3B, 0x3C,
+ 	 *		    0x3D, 0x3E, 0x3F, 0x5B, 0x5C, 0x5D, 0x7C
+	 *
+	 * 
+	 * @param fileContent - the byte array
+	 */
+	public static void analyzeRoot() {
+		/*Locate the root directory*/
+		//Determine the number of sectors before the root by calculating the number
+		//of sectors taken up by the FATs and adding the reserved sectors
+		int sectorsBeforeRoot = numFATs * sizeOfFAT + reservedSectorCount;
+		//Calculate the offset of the root directory start
+		int offsetOfRootStart = sectorsBeforeRoot * bytesPerSector;
+		int currentOffset = offsetOfRootStart;
+		//The number of bytes in the file name field of the directory entry
+		int numBytes = 11;
+		//Store a legal byte to replace illegal characters with
+		byte legalByte = 48;
+		//Boolean loop control variable
+		boolean done = false;
 
-
+		//While we haven't reached the end of the root directory (indicated by entries
+		//of 0's)
+		while(done == false) {
+			byte firstByte = fileContent[currentOffset];
+			
+			//Check to see if first byte contains 0xE5 (-27) or 0x20 (32)
+			if(firstByte == -27 || firstByte == 32) {
+				//If so, replace it with a legal character
+				fileContent[currentOffset] = legalByte;
+			}
+			//Otherwise check to see if the first byte contains 0
+			else if(firstByte == 0) {
+				if(fileContent[currentOffset + 1] != 0 && fileContent[currentOffset + 2] != 0) {
+					fileContent[currentOffset] = legalByte;
+				}
+				else {
+					if(fileContent[currentOffset + 32] == 0 && fileContent[currentOffset + 33] == 0) {
+						done = true;
+					}
+				}
+			}
+			//Otherwise iterate through the file name and check for any illegal characters
+			for(int i = currentOffset; i < currentOffset + numBytes; i++) {
+				byte thisByte = fileContent[i];
+				//If this byte is equal to any of the illegal characters, replace it
+			}
+			//Increment currentOffset to the offset of the next directory entry
+			currentOffset += 32;
+			//IN PROGRESS
+		}
+	}
 }
 
 	
