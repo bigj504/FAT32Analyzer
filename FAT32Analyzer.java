@@ -170,6 +170,8 @@ public class FAT32Analyzer {
 			return false;
 
 		/*Repair the BPB using this backup*/
+		//MAY BE INCORRECT, THIS IS A DRAFT
+		//NEED TO VERIFY CORRECTNESS
 		//Create a new byte array of size 512 (number of bytes in BPB)
 		byte[] backup = new byte[512];
 		//Store the backup BPB from fileContent in the backup array
