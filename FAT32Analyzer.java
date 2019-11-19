@@ -210,7 +210,7 @@ public class FAT32Analyzer {
 		byte secPerClus = fileContent[startingOffset + 13];
 		byte rsvdSecCntByteOne = fileContent[startingOffset + 14];
 		byte rsvdSecCntByteTwo = fileContent[startingOffset + 15];
-		byte numFATs = fileContent[startingOffset + 16];
+		byte numFAT = fileContent[startingOffset + 16];
 		byte rootEntCntByteOne = fileContent[startingOffset + 17];
 		byte rootEntCntByteTwo = fileContent[startingOffset + 18];
 		byte totSec16ByteOne = fileContent[startingOffset + 19];
@@ -271,7 +271,7 @@ public class FAT32Analyzer {
 		}
 
 		//If NumFATs isn't 2 or 1, return false
-		if(numFATs != 2 && numFATs != 1) {
+		if(numFAT != 2 && numFAT != 1) {
 			return false;
 		}
 
@@ -363,7 +363,7 @@ public class FAT32Analyzer {
 		}
 
 		/*Determine the number of FATs*/
-		numFATs = numFATs;
+		numFATs = numFAT;
 
 		/*Determine the number of sectors per FAT*/
 		//Create a new byte array to hold the 4 bytes of the sizeOfFAT
