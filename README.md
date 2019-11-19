@@ -2,7 +2,7 @@
 
 NOTES:
 
-	Can easily apply the same logi of bpbEntry method to BPB backup
+	Can easily apply the same logic of bpbEntry method to BPB backup
 	just by changing the offsets to match the BPB backup location.
 	(i.e. offset 0 in BPB entry would correspond to offset 3072 in BPB
 	backup because 512 bytes per sector * 6 sectors (where the backup
@@ -27,3 +27,7 @@ NOTES:
 	backup ISN'T modified or corrupted, we can just parse the backup into
 	a byte array of size 512 and for every byte in that array, overwrite
 	the bytes of the BPB (starting at 0) to that byte.
+
+USEFUL RESOURCES:
+	To help locate the root directory: http://www.tavi.co.uk/phobos/fat.html
+	Same: http://www.cs.uni.edu/~diesburg/courses/cop4610_fall10/week11/week11.pdf
