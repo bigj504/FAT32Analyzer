@@ -47,10 +47,12 @@
  */
 
 import java.io.File;
+import java.io.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
+import java.nio.*;
 
 
 public class FAT32Analyzer {
@@ -84,6 +86,11 @@ public class FAT32Analyzer {
 			bpbPresent = bpbEntry();
 		  	if(!bpbPresent)
 		  		bpbBackupPresent = bpbBackup();
+		  		analyzeRoot();
+		  	
+		  	
+		  	
+		
 		} catch ( IOException ioe){
 			ioe.printStackTrace();
 		}
@@ -175,11 +182,14 @@ public class FAT32Analyzer {
 		//Create a new byte array of size 512 (number of bytes in BPB)
 		byte[] backup = new byte[512];
 		//Store the backup BPB from fileContent in the backup array
-		for(int i = 0; i < 512; i++) {
+		int j = backupOffset;
+		for(int i = 0; i < 512;i++) {
 			//j is the index for fileContent
-			int j = backupOffset;
+			
 			backup[i] = fileContent[j];
+			
 			j++;
+			
 		}
 		//Index for fileContent
 		int index = 0;
@@ -187,10 +197,14 @@ public class FAT32Analyzer {
 		for(byte backupByte : backup) {
 			//Write that byte to its respective location in the BPB of the fileContent
 			fileContent[index] = backupByte;
+
+			
 			//Increment fileContent index
 			index++;
 		}
+		
 
+	
 		//Finally, return true to indicate success
 		return true;
 	}
@@ -426,9 +440,11 @@ public class FAT32Analyzer {
 		//Determine the number of sectors before the root by calculating the number
 		//of sectors taken up by the FATs and adding the reserved sectors
 		int sectorsBeforeRoot = numFATs * sizeOfFAT + reservedSectorCount;
+		
 		//Calculate the offset of the root directory start
 		int offsetOfRootStart = sectorsBeforeRoot * bytesPerSector;
 		int currentOffset = offsetOfRootStart;
+		
 		//The number of bytes in the file name field of the directory entry
 		int numBytes = 11;
 		//Store a legal byte to replace illegal characters with
@@ -461,13 +477,35 @@ public class FAT32Analyzer {
 			for(int i = currentOffset; i < currentOffset + numBytes; i++) {
 				byte thisByte = fileContent[i];
 				//If this byte is equal to any of the illegal characters, replace it
+				// Check to see if file name contains any character less than(0-4 U 6-25) 0x20 (32) except 0x05
+				// lower case characters 0x61-0x7A = 97-122
+				//0x22 = 34, 0x2A=42-0x2F=47, 0x58=3A-0x3f=63, 0x5B=91-0x5D=93, 0x7c =124
+				if((thisByte >= 0) && (thisByte <= 4) || ((thisByte >=6 ) && (thisByte <= 25))
+					|| (thisByte == 32) || (thisByte == 34) ||  ((thisByte >= 42) && (thisByte <= 47)) || ((thisByte >=58) &&
+					(thisByte <=63))  || ((thisByte >= 91) && (thisByte <= 93)) || ((thisByte >= 97) &&  (thisByte <=122)) ||
+					(thisByte == 124) ) {
+					//If so, replace it with a legal character
+					fileContent[currentOffset] = legalByte;
+					//System.out.println("I replace on offset"+ currentOffset); //test , delete trying to figure out issue on overwriting outside file name
+				}
+				else {
+					if(fileContent[currentOffset + 32] == 0 && fileContent[currentOffset + 33] == 0) {
+						done = true;
+					}
+				}
+
 			}
 			//Increment currentOffset to the offset of the next directory entry
 			currentOffset += 32;
 			//IN PROGRESS
 		}
-	}
+		
+		
+		
 }
+		
+	}
+
 
 	
 
