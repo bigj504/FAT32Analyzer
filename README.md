@@ -49,6 +49,16 @@ NOTES:
 		0x02 "y long filena"
 		0x01 "File with ver"
 
+	So to implement:
+	currentOffset = first byte of this line
+	if(offset 11 of this line is not 0f)
+		for(every byte from the start of the line to byte 11 inclusive)
+			if(that byte equals any of the illegal characters)
+				replace
+	else
+		just increment our offset by 32 and move back to the top of the loop
+		to check the next line
+
 USEFUL RESOURCES:
 
 	To help locate the root directory: http://www.tavi.co.uk/phobos/fat.html
