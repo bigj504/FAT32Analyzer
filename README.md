@@ -28,6 +28,35 @@ NOTES:
 	a byte array of size 512 and for every byte in that array, overwrite
 	the bytes of the BPB (starting at 0) to that byte.
 
+	Regarding the directory entries, the longname entries come before the
+	short name entry for that file. Each long name entry has that 0f at
+	offset 11, so we can differentiate between the long name entries and
+	the short name entries that way. We only need to check the short name
+	entries for illegal characters, the long name entries don't matter.
+	So if we locate the end of the short name entry (the 00 00) and iterate
+	backwards to the beginning of the line, we can parse through the first
+	11 bytes of the name that way.
+
+	Pulled this quote from the resource I added to the bottom that explains 
+	it pretty well:
+	Each long file name can hold 13 characters. If a filename needs more
+	than 13 characters, then more than one LFN will precede the directory
+	entry. They come in reverse order, last first. The last's sequence 
+	number is ORed with the value 0x40. For example, if there was a file
+	with the name 'File with very long filename.ext', which needs 3 LFN
+	entries, the sequence numbers and LFN directory entries would be:
+		0x43 "me.ext"
+		0x02 "y long filena"
+		0x01 "File with ver"
+
 USEFUL RESOURCES:
+
 	To help locate the root directory: http://www.tavi.co.uk/phobos/fat.html
+
 	Same: http://www.cs.uni.edu/~diesburg/courses/cop4610_fall10/week11/week11.pdf
+
+	
+
+	To help differentiate between short and long file names:
+
+	https://people.cs.umass.edu/~liberato/courses/2017-spring-compsci365/lecture-notes/11-fats-and-directory-entries/
