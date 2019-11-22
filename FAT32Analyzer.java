@@ -84,10 +84,21 @@ public class FAT32Analyzer {
 		try{															
 			fileContent = FAT32Analyzer.getFileBytes(file);
 			bpbPresent = bpbEntry();
+			if(bpbPresent)
+				analyzeRoot();
+			
 		  	if(!bpbPresent)
 		  		bpbBackupPresent = bpbBackup();
+		  	bpbPresent = bpbEntry();
+		  	if(bpbPresent)
 		  		analyzeRoot();
-		  	
+		  	//Have all above because whenever i would try to write to file it would write the bpb 1 run then write the root 2nd run
+
+		  	//write to whatever file path was entered as an argument 
+		  FileOutputStream fos = new FileOutputStream(fileNamePath);
+		  fos.write(fileContent);			
+		 // fos.close();   			
+
 		  	
 		  	
 		
@@ -474,8 +485,16 @@ public class FAT32Analyzer {
 				}
 			}
 			//Otherwise iterate through the file name and check for any illegal characters
+			
 			for(int i = currentOffset; i < currentOffset + numBytes; i++) {
+				byte fileAttribute = fileContent[currentOffset + numBytes];
 				byte thisByte = fileContent[i];
+				
+				//Check to see if we are in a long name entry, if so, break and increment 32 so we iterate through next line for the same.
+				if(fileAttribute == 15){
+					break;
+				}
+
 				//If this byte is equal to any of the illegal characters, replace it
 				// Check to see if file name contains any character less than(0-4 U 6-25) 0x20 (32) except 0x05
 				// lower case characters 0x61-0x7A = 97-122
@@ -486,7 +505,7 @@ public class FAT32Analyzer {
 					(thisByte == 124) ) {
 					//If so, replace it with a legal character
 					fileContent[currentOffset] = legalByte;
-					//System.out.println("I replace on offset"+ currentOffset); //test , delete trying to figure out issue on overwriting outside file name
+					System.out.println("I replace on offset"+ currentOffset); //test , delete trying to figure out issue on overwriting outside file name
 				}
 				else {
 					if(fileContent[currentOffset + 32] == 0 && fileContent[currentOffset + 33] == 0) {
@@ -495,6 +514,7 @@ public class FAT32Analyzer {
 				}
 
 			}
+		
 			//Increment currentOffset to the offset of the next directory entry
 			currentOffset += 32;
 			//IN PROGRESS
