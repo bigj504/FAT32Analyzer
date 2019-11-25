@@ -470,6 +470,7 @@ public class FAT32Analyzer {
 		while(done == false) {
 			byte firstByte = fileContent[currentOffset];
 			byte rootDirectoryAttributes = fileContent[currentOffset + numBytes];
+			byte rootDirectoryReserved = fileContent[currentOffset+ 12];
 			byte[] shortName = new byte[11];
 			char[] shortNameString = new char[11];
 
@@ -492,6 +493,14 @@ public class FAT32Analyzer {
 
 				String str = new String(shortNameString);
 				System.out.println(str + " has an invalid file attribute type");
+			}
+
+			//Check to see if rootDirectory reserved bits are what they are supposed to be, if not change and annouce.
+			if(rootDirectoryReserved != 0){
+				fileContent[currentOffset +12] =0;
+				System.out.println("DIR_NTRes reserved slot is invalid, changed to 00 at Offset: " +(currentOffset+12));
+
+
 			}
 			
 
@@ -517,9 +526,18 @@ public class FAT32Analyzer {
 			for(int i = currentOffset; i < currentOffset + numBytes; i++) {
 				byte fileAttribute = fileContent[currentOffset + numBytes];
 				byte thisByte = fileContent[i];
-				
+				byte longNameReservedBitOne = fileContent[currentOffset+26];
+				byte longNameReservedBitTwo = fileContent[currentOffset+27];
+
 				//Check to see if we are in a long name entry, if so, break and increment 32 so we iterate through next line for the same.
 				if(fileAttribute == 15){
+					//Check to see if long name entry specific reserved bits are what they are supposed to be, if not change and announce.
+					if((longNameReservedBitOne != 0) || (longNameReservedBitTwo != 0)){
+						fileContent[currentOffset +26] = 0;
+						fileContent[currentOffset +27] = 0;
+						System.out.println("LDIR_FstClusLO reserved slot is invalid, changed to 00 at offset" +(currentOffset+26) +" and "+(currentOffset+27));
+					}
+
 					break;
 				}
 
