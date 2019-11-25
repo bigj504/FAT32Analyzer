@@ -97,7 +97,9 @@ public class FAT32Analyzer {
 		  	//write to whatever file path was entered as an argument 
 		  FileOutputStream fos = new FileOutputStream(fileNamePath);
 		  fos.write(fileContent);			
-		 // fos.close();   			
+		 // fos.close();   	//dont need to close , try catch will close it
+
+		// System.out.println()		
 
 		  	
 		  	
@@ -467,6 +469,32 @@ public class FAT32Analyzer {
 		//of 0's)
 		while(done == false) {
 			byte firstByte = fileContent[currentOffset];
+			byte rootDirectoryAttributes = fileContent[currentOffset + numBytes];
+			byte[] shortName = new byte[11];
+			char[] shortNameString = new char[11];
+
+			//Checking for 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x0f
+			if((rootDirectoryAttributes != 1) && (rootDirectoryAttributes != 2) && (rootDirectoryAttributes != 4)
+				&& (rootDirectoryAttributes != 8) && (rootDirectoryAttributes != 16) && (rootDirectoryAttributes != 32)
+				&& (rootDirectoryAttributes != 15)){
+				// if so iterate through shortname and store in  byte array, then store in
+				//int name, then casting name to char and storing char in shortNameString 
+				//then line 491 and 492 
+				for(int j = currentOffset;j< (currentOffset+ numBytes); j++){
+					int ji = 0;
+					
+					shortName[ji] = fileContent[j];
+					int name = shortName[ji];
+					char Character = (char) name;
+					shortNameString[ji]= Character;
+					ji++;
+				}
+
+				String str = new String(shortNameString);
+				System.out.println(str + " has an invalid file attribute type");
+			}
+			
+
 			
 			//Check to see if first byte contains 0xE5 (-27) or 0x20 (32)
 			if(firstByte == -27 || firstByte == 32) {
@@ -523,8 +551,8 @@ public class FAT32Analyzer {
 		
 		
 }
-		
-	}
+	}	
+	
 
 
 	
