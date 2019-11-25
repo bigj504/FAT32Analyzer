@@ -481,8 +481,9 @@ public class FAT32Analyzer {
 				// if so iterate through shortname and store in  byte array, then store in
 				//int name, then casting name to char and storing char in shortNameString 
 				//then line 491 and 492 
+				int ji = 0;
 				for(int j = currentOffset;j< (currentOffset+ numBytes); j++){
-					int ji = 0;
+					
 					
 					shortName[ji] = fileContent[j];
 					int name = shortName[ji];
