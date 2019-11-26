@@ -22,7 +22,14 @@ DESCRIPTION:
 
 INSTRUCTIONS:
 
-	Instructions here
+	 To start the FAT32Analyzer, double click the FAT32Analyzer.bat file.
+	This will bring up the command line asking for the path of the fat 32 
+	image to parse, if the fat32 image is not in the same file as the .bat
+	file , an absolute path is neeeded. 
+	  Next after the path is confirmed on screen hit enter again and the tool 
+	will begin.The repaired image will be printed to output.dd , however if 
+	you would like to specify a different file name for the repaired image, line
+	115 can be changed to your intended location. 
 
 
 FILES INCLUDED:
