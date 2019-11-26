@@ -86,10 +86,13 @@ public class FAT32Analyzer {
 		try{															
 			fileContent = FAT32Analyzer.getFileBytes(file);
 			System.out.println("Analyzing boot sector...");
+			//analyzeRoot();
 			bpbPresent = FAT32Analyzer.bpbEntry();
 			if(!bpbPresent) {
 				System.out.println("Boot sector is missing and/or modified. Checking backup...");
 				bpbBackupPresent = FAT32Analyzer.bpbBackup();
+				bpbEntry();
+
 				if(!bpbBackupPresent) {
 					System.out.println("Boot sector and backup boot sector are missing and/or corrupted beyond repair.");
 					System.exit(1);
@@ -506,7 +509,7 @@ public class FAT32Analyzer {
 			//Check to see if rootDirectory reserved bits are what they are supposed to be, if not change and annouce.
 			if(entryReserved != 0){
 				fileContent[currentOffset +12] =0;
-				System.out.println("DIR_NTRes reserved slot is invalid, changed to 00 at offset: " +(currentOffset+12));
+				//System.out.println("DIR_NTRes reserved slot is invalid, changed to 00 at offset: " +(currentOffset+12));
 			}
 
 			
@@ -514,6 +517,7 @@ public class FAT32Analyzer {
 			if(firstByte == -27 || firstByte == 32) {
 				//If so, replace it with a legal character
 				fileContent[currentOffset] = legalByte;
+				//System.out.println("Replaced an illegal character in a directory entry's file name at offset "+ currentOffset + ".");
 			}
 			//Otherwise check to see if the first byte contains 0
 			else if(firstByte == 0) {
@@ -521,6 +525,7 @@ public class FAT32Analyzer {
 				if(fileContent[currentOffset + 1] != 0 && fileContent[currentOffset + 2] != 0) {
 					//If they aren't 0 also, change firstByte to non-zero
 					fileContent[currentOffset] = legalByte;
+				//	System.out.println("Replaced an illegal character in a directory entry's file name at offset "+ currentOffset + ".");
 				}
 				//If they are 0,
 				else {
@@ -544,7 +549,7 @@ public class FAT32Analyzer {
 					if((longNameReservedBitOne != 0) || (longNameReservedBitTwo != 0)){
 						fileContent[currentOffset +26] = 0;
 						fileContent[currentOffset +27] = 0;
-						System.out.println("LDIR_FstClusLO reserved slot is invalid, changed to 00 at offset" +(currentOffset+26) +" and "+(currentOffset+27));
+				//		System.out.println("LDIR_FstClusLO reserved slot is invalid, changed to 00 at offset" +(currentOffset+26) +" and "+(currentOffset+27));
 					}
 
 					break;
@@ -567,7 +572,7 @@ public class FAT32Analyzer {
 					(thisByte == 124) ) {
 					//If so, replace it with a legal character
 					fileContent[i] = legalByte;
-					System.out.println("Replaced an illegal character in a directory entry's file name at offset "+ i + ".");
+				//	System.out.println("Replaced an illegal character in a directory entry's file name at offset "+ i + ".");
 				}
 				else {
 					if(fileContent[currentOffset + 32] == 0 && fileContent[currentOffset + 33] == 0) {
