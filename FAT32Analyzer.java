@@ -2,8 +2,8 @@
  * Analyzer and repair tool for FAT32 file system partitions
  *
  * Tasks:
- *		1) Read FAT32 partition into byte array (DONE)
- *		2) Begin at BPB and ensure it's not missing. Locate it via
+ *		1) Read FAT32 partition into byte array 							(DONE)
+ *		2) Begin at BPB and ensure it's not missing. Locate it via 			(DONE)
  *         the jmpBoot signature:
  *		   	jmpBoot[0] = 0xEB
  *		   	jmpBoot[1] = ??
@@ -12,37 +12,37 @@
  *         	jmpBoot[0] = 0xE9
  *		   	jmpBoot[1] = ??
  *		   	jmpBoot[2] = ??
- *		3) If BPB is missing, locate the backup at sector 6. 
+ *		3) If BPB is missing, locate the backup at sector 6. 				(DONE)
  *         Can ensure we found the backups jmpBoot signature specifically
  *		   by calculating the offset and ensuring it is at the start of
  *		   a sector (regardless of bytes per sector, since all options
  *         for bytes per sector are divisible by 512)
- *		4) Compare BPB to backup and repair BPB using backup if they don't
+ *		4) Compare BPB to backup and repair BPB using backup if they don't 	(DONE)
  *         match.
- *		5) Parse through intact BPB for information: 
+ *		5) Parse through intact BPB for information: 						(DONE)
  *			 a) bytes per sector
  *         	 b) sectors per cluster 
  *			 c) number of reserved sectors 
  *			 d) location of root cluster
- *		6) Locate root directory and search for the following illegal
+ *		6) Locate root directory and search for the following illegal 		(DONE)
  *         characters:
  *			 a) 0x00 in first byte
  *			 b) 0xE5 in first byte
  *			 c) any characters less than 0x20 (except 0x05)
  *			 d) 0x22, 0x2A, 0x2B, 0x2C, 0x2E, 0x2F, 0x3A, 0x3B, 0x3C,
  *			    0x3D, 0x3E, 0x3F, 0x5B, 0x5C, 0x5D, 0x7C
- *		7) Replace illegal characters with legal ones
- *		8) (Optional) Ensure other fields with limited legal character
+ *		7) Replace illegal characters with legal ones 						(DONE)
+ *		8) Ensure other fields with limited legal character 				(DONE)
  *         choices (i.e. directory entry's file attribute type) adhere
- *         to their requirements
- *		9) (Optional) Ensure reserved bytes aren't overwritten
- *	   10) (Probably not) GUI for the tool via Java Swing
+ *         to their requirements. Report to the user if not.
+ *		9) Ensure reserved bytes aren't overwritten. Repair if so. 			(DONE)
+ * 
  * Usage:
  *     	java FAT32Analyzer path/to/fat32.dd
  *
  * @author Hannah Juraszek
  * @author Jordan Gillespie
- * @version 25 November 2019
+ * @version 26 November 2019
  *
  */
 
@@ -86,7 +86,6 @@ public class FAT32Analyzer {
 		try{															
 			fileContent = FAT32Analyzer.getFileBytes(file);
 			System.out.println("Analyzing boot sector...");
-			//analyzeRoot();
 			bpbPresent = FAT32Analyzer.bpbEntry();
 			if(!bpbPresent) {
 				System.out.println("Boot sector is missing and/or modified. Checking backup...");
@@ -507,8 +506,8 @@ public class FAT32Analyzer {
 
 			//Check to see if rootDirectory reserved bits are what they are supposed to be, if not change and annouce.
 			if(entryReserved != 0){
-				fileContent[currentOffset +12] =0;
-				//System.out.println("DIR_NTRes reserved slot is invalid, changed to 00 at offset: " +(currentOffset+12));
+				fileContent[currentOffset + 12] =0;
+				System.out.println("Repaired the directory entry's reserved byte at offset " + (currentOffset + 12) + ".");
 			}
 
 			
@@ -516,7 +515,7 @@ public class FAT32Analyzer {
 			if(firstByte == -27 || firstByte == 32) {
 				//If so, replace it with a legal character
 				fileContent[currentOffset] = legalByte;
-				//System.out.println("Replaced an illegal character in a directory entry's file name at offset "+ currentOffset + ".");
+				System.out.println("Replaced an illegal character in a directory entry's file name at offset " + currentOffset + ".");
 			}
 			//Otherwise check to see if the first byte contains 0
 			else if(firstByte == 0) {
@@ -524,7 +523,7 @@ public class FAT32Analyzer {
 				if(fileContent[currentOffset + 1] != 0 && fileContent[currentOffset + 2] != 0) {
 					//If they aren't 0 also, change firstByte to non-zero
 					fileContent[currentOffset] = legalByte;
-				//	System.out.println("Replaced an illegal character in a directory entry's file name at offset "+ currentOffset + ".");
+					System.out.println("Replaced an illegal character in a directory entry's file name at offset " + currentOffset + ".");
 				}
 				//If they are 0,
 				else {
@@ -548,7 +547,7 @@ public class FAT32Analyzer {
 					if((longNameReservedBitOne != 0) || (longNameReservedBitTwo != 0)){
 						fileContent[currentOffset +26] = 0;
 						fileContent[currentOffset +27] = 0;
-				//		System.out.println("LDIR_FstClusLO reserved slot is invalid, changed to 00 at offset" +(currentOffset+26) +" and "+(currentOffset+27));
+						System.out.println("LDIR_FstClusLO reserved slot is invalid, changed to 00 at offset" +(currentOffset+26) +" and "+(currentOffset+27));
 					}
 
 					break;
@@ -571,7 +570,7 @@ public class FAT32Analyzer {
 					(thisByte == 124) ) {
 					//If so, replace it with a legal character
 					fileContent[i] = legalByte;
-				//	System.out.println("Replaced an illegal character in a directory entry's file name at offset "+ i + ".");
+					System.out.println("Replaced an illegal character in a directory entry's file name at offset "+ i + ".");
 				}
 				else {
 					if(fileContent[currentOffset + 32] == 0 && fileContent[currentOffset + 33] == 0) {
