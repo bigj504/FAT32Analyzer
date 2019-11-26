@@ -409,10 +409,10 @@ public class FAT32Analyzer {
 		//Create a new byte array to hold the 4 bytes of the sizeOfFAT
 		byte[] temp = new byte[4];
 		//Add the 4 bytes to the array
-		temp[0] = fileContent[36];
-		temp[1] = fileContent[37];
-		temp[2] = fileContent[38];
-		temp[3] = fileContent[39];
+		temp[0] = fileContent[startingOffset + 36];
+		temp[1] = fileContent[startingOffset + 37];
+		temp[2] = fileContent[startingOffset + 38];
+		temp[3] = fileContent[startingOffset + 39];
 		//Create a ByteBuffer wrapped around the array
 		ByteBuffer bb = ByteBuffer.wrap(temp);
 		//Change the ByteBuffer to little endian
@@ -422,17 +422,17 @@ public class FAT32Analyzer {
 
 		/*Determine location of root cluster*/
 		//If the 3 bytes following the least significant byte are 0
-		if(fileContent[45] == 0 && fileContent[46] == 0 && fileContent[47] == 0)
+		if(fileContent[startingOffset + 45] == 0 && fileContent[startingOffset + 46] == 0 && fileContent[startingOffset + 47] == 0)
 			//Then the rootCluster field is just in the first byte
-			rootCluster = fileContent[44];
+			rootCluster = fileContent[startingOffset + 44];
 		//Otherwise create a new byte array to hold the 4 bytes and convert using ByteBuffer
 		else {
 			byte[] arr = new byte[4];
 			//Add the 4 bytes to the array
-			arr[0] = fileContent[44];
-			arr[1] = fileContent[45];
-			arr[2] = fileContent[46];
-			arr[3] = fileContent[47];
+			arr[0] = fileContent[startingOffset + 44];
+			arr[1] = fileContent[startingOffset + 45];
+			arr[2] = fileContent[startingOffset + 46];
+			arr[3] = fileContent[startingOffset + 47];
 			//Override our existing byte buffer to be wrapped around this array
 			bb = ByteBuffer.wrap(arr);
 			//Just to make sure it's using little endian ordering
