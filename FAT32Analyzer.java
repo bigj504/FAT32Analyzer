@@ -68,20 +68,25 @@ public class FAT32Analyzer {
 	public static void main(String[] args) throws IOException {
 		
 		File file;
-		String fileNamePath;
+		String inputFileNamePath;
+		String outputFileNamePath;
 		boolean bpbPresent;
 		boolean bpbBackupPresent;
 
 		//Ensure proper usage
-		if(args.length != 1) {
-			System.out.println("Usage: java FAT32Analyzer path/to/file.dd");
+		if(args.length != 2) {
+			System.out.println("Usage: java FAT32Analyzer path/to/input/file.dd path/to/output/file.dd");
 			System.exit(1);
 		}
 
-		//Store the file name path
-		fileNamePath = args[0];
+		//Store the input file name path
+		inputFileNamePath = args[0];
+
+		//Store the output file name path
+		outputFileNamePath = args[1];
+
 		//Instantiate the file
-		file = new File(fileNamePath);
+		file = new File(inputFileNamePath);
 
 		try{															
 			fileContent = FAT32Analyzer.getFileBytes(file);
@@ -112,7 +117,7 @@ public class FAT32Analyzer {
 			System.out.println("------------------------------------");
 		  	FAT32Analyzer.analyzeRoot();
 		  	System.out.println("All done.");
-		  	FileOutputStream fos = new FileOutputStream("output.dd");
+		  	FileOutputStream fos = new FileOutputStream(outputFileNamePath);
 		  	fos.write(fileContent);	
 		
 		} catch ( IOException ioe){
