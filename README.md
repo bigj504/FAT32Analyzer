@@ -1,4 +1,15 @@
 # digital-forensics-project
+update:
+
+Fixed some of the errors i was getting after running through all the changes 
+that were being made in debug mode, one of the additional calls to bpbEntry
+was deleted that was crucial. If the bpb isnt present some of variables do not 
+get populated, so an additional call to bpbEntry after the repair is made is 
+needed or when trying to analyzeRoot the offset will be wrong and multiple 
+things will be changed.
+Also I made a batch file that asks for the image file path and is stored in
+%Name% , could possibly be edited to look better.
+
 
 UH:
 
