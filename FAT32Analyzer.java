@@ -199,7 +199,7 @@ public class FAT32Analyzer {
 		boolean backupIntact = FAT32Analyzer.parseBPB(backupOffset);
 
 		//If the backup is not intact (parseBPB returned false), return false
-		if(backupIntact = false)
+		if(backupIntact == false)
 			return false;
 
 		/*Repair the BPB using this backup*/
