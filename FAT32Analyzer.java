@@ -91,7 +91,6 @@ public class FAT32Analyzer {
 			if(!bpbPresent) {
 				System.out.println("Boot sector is missing and/or modified. Checking backup...");
 				bpbBackupPresent = FAT32Analyzer.bpbBackup();
-				bpbEntry();
 
 				if(!bpbBackupPresent) {
 					System.out.println("Boot sector and backup boot sector are missing and/or corrupted beyond repair.");
