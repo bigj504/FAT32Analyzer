@@ -8,7 +8,7 @@
  *		   	jmpBoot[0] = 0xEB
  *		   	jmpBoot[1] = ??
  *		   	jmpBoot[2] = 0x90
- **              OR
+ *              OR
  *         	jmpBoot[0] = 0xE9
  *		   	jmpBoot[1] = ??
  *		   	jmpBoot[2] = ??
@@ -26,11 +26,11 @@
  *			 d) location of root cluster
  *		6) Locate root directory and search for the following illegal
  *         characters:
- 			 a) 0x00 in first byte
- 			 b) 0xE5 in first byte
- 			 c) any characters less than 0x20 (except 0x05)
- 			 d) 0x22, 0x2A, 0x2B, 0x2C, 0x2E, 0x2F, 0x3A, 0x3B, 0x3C,
- 			    0x3D, 0x3E, 0x3F, 0x5B, 0x5C, 0x5D, 0x7C
+ *			 a) 0x00 in first byte
+ *			 b) 0xE5 in first byte
+ *			 c) any characters less than 0x20 (except 0x05)
+ *			 d) 0x22, 0x2A, 0x2B, 0x2C, 0x2E, 0x2F, 0x3A, 0x3B, 0x3C,
+ *			    0x3D, 0x3E, 0x3F, 0x5B, 0x5C, 0x5D, 0x7C
  *		7) Replace illegal characters with legal ones
  *		8) (Optional) Ensure other fields with limited legal character
  *         choices (i.e. directory entry's file attribute type) adhere
@@ -42,7 +42,7 @@
  *
  * @author Hannah Juraszek
  * @author Jordan Gillespie
- * @version 19 November 2019
+ * @version 25 November 2019
  *
  */
 
@@ -78,31 +78,41 @@ public class FAT32Analyzer {
 			System.exit(1);
 		}
 
+		//Store the file name path
 		fileNamePath = args[0];
+		//Instantiate the file
 		file = new File(fileNamePath);
 
 		try{															
 			fileContent = FAT32Analyzer.getFileBytes(file);
-			bpbPresent = bpbEntry();
-			if(bpbPresent)
-				analyzeRoot();
-			
-		  	if(!bpbPresent)
-		  		bpbBackupPresent = bpbBackup();
-		  	bpbPresent = bpbEntry();
-		  	if(bpbPresent)
-		  		analyzeRoot();
-		  	//Have all above because whenever i would try to write to file it would write the bpb 1 run then write the root 2nd run
-
-		  	//write to whatever file path was entered as an argument 
-		  FileOutputStream fos = new FileOutputStream(fileNamePath);
-		  fos.write(fileContent);			
-		 // fos.close();   	//dont need to close , try catch will close it
-
-		// System.out.println()		
-
-		  	
-		  	
+			System.out.println("Analyzing boot sector...");
+			bpbPresent = FAT32Analyzer.bpbEntry();
+			if(!bpbPresent) {
+				System.out.println("Boot sector is missing and/or modified. Checking backup...");
+				bpbBackupPresent = FAT32Analyzer.bpbBackup();
+				if(!bpbBackupPresent) {
+					System.out.println("Boot sector and backup boot sector are missing and/or corrupted beyond repair.");
+					System.exit(1);
+				}
+				else {
+					System.out.println("Backup boot sector located.");
+					System.out.println("Boot sector repaired using the backup.");
+				}
+			}
+			else {
+				System.out.println("Boot sector located.");
+			}
+			System.out.println("------------------------------------");
+			System.out.println("Bytes per sector: " + bytesPerSector);
+			System.out.println("Sectors per cluster: " + sectorsPerCluster);
+			System.out.println("Number of reserved sectors: " + reservedSectorCount);
+			System.out.println("Number of FATs: " + numFATs);
+			System.out.println("Size of FATs (in sectors): " + sizeOfFAT);
+			System.out.println("------------------------------------");
+		  	FAT32Analyzer.analyzeRoot();
+		  	System.out.println("All done.");
+		  	FileOutputStream fos = new FileOutputStream("output.dd");
+		  	fos.write(fileContent);	
 		
 		} catch ( IOException ioe){
 			ioe.printStackTrace();
@@ -444,9 +454,6 @@ public class FAT32Analyzer {
  	 *		 d) any characters less than 0x20 (except 0x05)
  	 *		 e) 0x22, 0x2A, 0x2B, 0x2C, 0x2E, 0x2F, 0x3A, 0x3B, 0x3C,
  	 *		    0x3D, 0x3E, 0x3F, 0x5B, 0x5C, 0x5D, 0x7C
-	 *
-	 * 
-	 * @param fileContent - the byte array
 	 */
 	public static void analyzeRoot() {
 		/*Locate the root directory*/
@@ -469,41 +476,38 @@ public class FAT32Analyzer {
 		//of 0's)
 		while(done == false) {
 			byte firstByte = fileContent[currentOffset];
-			byte rootDirectoryAttributes = fileContent[currentOffset + numBytes];
-			byte rootDirectoryReserved = fileContent[currentOffset+ 12];
+			byte entryAttribute = fileContent[currentOffset + numBytes];
+			byte entryReserved = fileContent[currentOffset+ 12];
 			byte[] shortName = new byte[11];
 			char[] shortNameString = new char[11];
 
-			//Checking for 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x0f
-			if((rootDirectoryAttributes != 1) && (rootDirectoryAttributes != 2) && (rootDirectoryAttributes != 4)
-				&& (rootDirectoryAttributes != 8) && (rootDirectoryAttributes != 16) && (rootDirectoryAttributes != 32)
-				&& (rootDirectoryAttributes != 15)){
-				// if so iterate through shortname and store in  byte array, then store in
-				//int name, then casting name to char and storing char in shortNameString 
-				//then line 491 and 492 
+			//If the attribute field doesn't equal one of the allowed forms
+			if( (entryAttribute != 1) && 
+				(entryAttribute != 2) && 
+				(entryAttribute != 4) && 
+				(entryAttribute != 8) && 
+				(entryAttribute != 16) && 
+				(entryAttribute != 32) && 
+				(entryAttribute != 15) ) { 
+				//Iterate through the shortname and store the name in a byte array
 				int ji = 0;
 				for(int j = currentOffset;j< (currentOffset+ numBytes); j++){
-					
-					
 					shortName[ji] = fileContent[j];
 					int name = shortName[ji];
 					char Character = (char) name;
 					shortNameString[ji]= Character;
 					ji++;
 				}
-
 				String str = new String(shortNameString);
-				System.out.println(str + " has an invalid file attribute type");
+				System.out.println(str + " located at offset " + currentOffset + " has an invalid file attribute type.");
+				System.out.println("This repair cannot be done automatically.");
 			}
 
 			//Check to see if rootDirectory reserved bits are what they are supposed to be, if not change and annouce.
-			if(rootDirectoryReserved != 0){
+			if(entryReserved != 0){
 				fileContent[currentOffset +12] =0;
-				System.out.println("DIR_NTRes reserved slot is invalid, changed to 00 at Offset: " +(currentOffset+12));
-
-
+				System.out.println("DIR_NTRes reserved slot is invalid, changed to 00 at offset: " +(currentOffset+12));
 			}
-			
 
 			
 			//Check to see if first byte contains 0xE5 (-27) or 0x20 (32)
@@ -513,25 +517,29 @@ public class FAT32Analyzer {
 			}
 			//Otherwise check to see if the first byte contains 0
 			else if(firstByte == 0) {
+				//If so, check the next byte and the byte after that
 				if(fileContent[currentOffset + 1] != 0 && fileContent[currentOffset + 2] != 0) {
+					//If they aren't 0 also, change firstByte to non-zero
 					fileContent[currentOffset] = legalByte;
 				}
+				//If they are 0,
 				else {
+					//Check the next entry for 0's also
 					if(fileContent[currentOffset + 32] == 0 && fileContent[currentOffset + 33] == 0) {
+						//If they are 0's also, we've reached the end of the directory
 						done = true;
 					}
 				}
 			}
-			//Otherwise iterate through the file name and check for any illegal characters
-			
+
+			//Iterate through the file name and check for any illegal characters
 			for(int i = currentOffset; i < currentOffset + numBytes; i++) {
-				byte fileAttribute = fileContent[currentOffset + numBytes];
 				byte thisByte = fileContent[i];
 				byte longNameReservedBitOne = fileContent[currentOffset+26];
 				byte longNameReservedBitTwo = fileContent[currentOffset+27];
 
 				//Check to see if we are in a long name entry, if so, break and increment 32 so we iterate through next line for the same.
-				if(fileAttribute == 15){
+				if(entryAttribute == 15){
 					//Check to see if long name entry specific reserved bits are what they are supposed to be, if not change and announce.
 					if((longNameReservedBitOne != 0) || (longNameReservedBitTwo != 0)){
 						fileContent[currentOffset +26] = 0;
@@ -546,13 +554,20 @@ public class FAT32Analyzer {
 				// Check to see if file name contains any character less than(0-4 U 6-25) 0x20 (32) except 0x05
 				// lower case characters 0x61-0x7A = 97-122
 				//0x22 = 34, 0x2A=42-0x2F=47, 0x58=3A-0x3f=63, 0x5B=91-0x5D=93, 0x7c =124
-				if((thisByte >= 0) && (thisByte <= 4) || ((thisByte >=6 ) && (thisByte <= 25))
-					|| (thisByte == 32) || (thisByte == 34) ||  ((thisByte >= 42) && (thisByte <= 47)) || ((thisByte >=58) &&
-					(thisByte <=63))  || ((thisByte >= 91) && (thisByte <= 93)) || ((thisByte >= 97) &&  (thisByte <=122)) ||
+				if( ((thisByte >= 0) && (thisByte <= 4)) || 
+					((thisByte >=6 ) && (thisByte <= 25)) || 
+					(thisByte == 32) || 
+					(thisByte == 34) ||  
+					((thisByte >= 42) && (thisByte <= 44)) ||
+					(thisByte == 46) ||
+					(thisByte == 47) ||
+					((thisByte >= 58) && (thisByte <= 63)) || 
+					((thisByte >= 91) && (thisByte <= 93)) || 
+					((thisByte >= 97) && (thisByte <= 122)) ||
 					(thisByte == 124) ) {
 					//If so, replace it with a legal character
-					fileContent[currentOffset] = legalByte;
-					System.out.println("I replace on offset"+ currentOffset); //test , delete trying to figure out issue on overwriting outside file name
+					fileContent[i] = legalByte;
+					System.out.println("Replaced an illegal character in a directory entry's file name at offset "+ i + ".");
 				}
 				else {
 					if(fileContent[currentOffset + 32] == 0 && fileContent[currentOffset + 33] == 0) {
@@ -564,17 +579,6 @@ public class FAT32Analyzer {
 		
 			//Increment currentOffset to the offset of the next directory entry
 			currentOffset += 32;
-			//IN PROGRESS
 		}
-		
-		
-		
+	}
 }
-	}	
-	
-
-
-	
-
-
-

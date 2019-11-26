@@ -1,5 +1,30 @@
 # digital-forensics-project
 
+UH:
+
+	Yo can you run a few test runs and make sure this commit version works?
+	I have it outputting the changes to a new file instead of the input
+	file now, so that way it's not overwriting our input files (for the
+	presentation). Let's make sure we have input files that reflect what
+	we want to show (partially wiped BPB / the lab one as is / one with 
+	an invalid attribute type). It outputs every time to output.dd, so 
+	that'll be our output file to look at and mount and make sure it's
+	good.
+
+	I put some printlns in to print what it's doing at the time. Feel free
+	to add to or modify them to make them look better or whatever. I also
+	realized it was incorrectly changing out the hex character "0x2d" in
+	the filename replacing section, which is actually a valid character.
+	I fixed it (I think) in the if-statement section, but double check me
+	and make sure I did it right to include the other values.
+
+	I also tidied up some of the variable names and simplified some code 
+	where I could. I'm almost certain (?) I didn't break anything, but 
+	like I said, a few test runs could be good lol. 
+
+	If it works and we've got our input files ready to rock, I think we're
+	good for tomorrow. 
+
 NOTES:
 
 	Can easily apply the same logic of bpbEntry method to BPB backup
